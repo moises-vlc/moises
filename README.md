@@ -476,4 +476,213 @@ terminal.
 facilitando el acceso al mismo desde nuestra terminal
 - Parámetro “--name”: nos permite establecer un nombre a nuestro contenedor. Si no indicamos este parámetro, nos creará un nombre aleatorio.
 
-### 
+## GESTIÓN DE IMÁGENES EN DOCKER
+
+### LISTANDO IMÁGENES LOCALES Y PARA SU DESCARGA
+
+**Listando imágenes locales**
+
+Podemos obtener información de qué imágenes tenemos almacenadas localmente usando
+- docker images
+
+Podemos utilizar filtros sencillos usando la nomenclatura “docker images [REPOSITORIO[:TAG]]”
+- docker images ubuntu:14.04
+
+Si queremos utilizar algún filtro avanzado, podemos usar la opción “-f”. Aquí un ejemplo, filtrando
+las imágenes que empiecen por “u” y acabe su etiqueta en “04”.
+- docker images -f=reference="u*:*04"
+
+**Listando imágenes para su descarga**
+
+Podemos obtener información de imágenes que podemos descargar en el registro (por defecto,
+Docker Hub) utilizando el comando “docker search”. Por ejemplo, con el siguiente comando:
+- docker search ubuntu
+
+### DESCARGANDO Y ELIMINANDO IMÁGENES (Y CONTENEDORES) LOCALES
+
+**Descargando imágenes con docker pull**
+
+Podemos almacenar imágenes localmente desde el registro sin necesidad de crear un contenedor
+mediante el comando “docker pull”. Para conocer sus nombres y versiones, podemos usar el comando “docker search”
+- docker pull alpine:3.10
+
+**Observar el historial de una imagen descargada**
+
+Podéis observar el historial de una imagen descargada, es decir, en qué versiones se basa, usando
+el comando “docker history”. Por ejemplo con:
+- docker history nginx
+
+**Eliminando imágenes con “docker rmi”**
+
+Con el comando “docker rmi” podemos eliminar imágenes almacenadas localmente
+- docker rmi ubuntu:14.04
+
+Una forma de eliminar todas las imágenes locales, que no estén siendo usadas por un contenedor, combinando “docker images -q” para obtener la lista y “docker rmi” es la siguiente:
+- docker rmi $(docker images -q)
+
+**Eliminando contenedores con “docker rm”**
+
+Con la siguiente orden se puede borrar un contenedor por identificador o nombre
+- docker rm IDENTIFICADOR/NOMBRE
+
+Asimismo, una forma de borrar todos los contenedores (que estén parados), de forma similar a
+como vimos en el anterior punto, es la siguiente:
+- docker stop $(docker ps -a -q)
+- docker rm $(docker ps -a -q)
+
+**Eliminando todas las imágenes y contenedores con “docker system prune -a”**
+
+Una forma de realizar las operaciones anteriores de golpe, es usando “docker system prune -a”,
+que elimina toda imagen y contenedor parado.
+- docker stop $(docker ps -a -q)
+- docker system prune -a
+
+#### CREANDO NUESTRAS PROPIAS IMÁGENES A PARTIR DE UN CONTENEDOR EXISTENTE
+
+Podemos entender que un contenedor es
+como una “capa temporal” de una imagen, por lo cual, podemos hacer un “commit” y convertir
+esa “capa temporal” en una imagen. La sintaxis más habitual es la siguiente
+- docker commit -a "autor" -m "comentario" ID/NOMBRE-CONTENEDOR
+usuario/imagen:[version]
+
+Si tenemos un contenedor con nombre “ubuntumod” que simplemente es un
+contenedor basado en la imagen “ubuntu” en el que se ha instalado un programa y hacemos:
+- contenedor basado en la imagen “ubuntu” en el que se ha instalado un programa y hacemos:
+docker commit -a "Sergi" -m "Ubuntu modificado" IDCONTENEDOR
+sergi/ubuntumod:2021
+
+y tras ello, comprobamos las imágenes con
+- docker images
+
+### EXPORTANDO/IMPORTANDO IMÁGENES LOCALES A/DESDE FICHEROS
+
+Una vez tengamos una imagen local en nuestro sistema, podemos hacer una copia de la misma, ya
+sea como copia de seguridad o como forma de transportarla a otros sistemas mediante el
+comando “docker save”. Por ejemplo, se puede hacer de estas dos formas:
+- docker save -o copiaSeguridad.tar sergi/ubuntumod
+- docker save sergi/ubuntumod > copiaSeguridad.tar
+
+Si queremos importar el fichero para crear una imagen en nuestra máquina, podemos usar
+- docker load -i copiaSeguridad.tar
+- docker load < copiaSeguridad.tar
+
+### SUBIENDO NUESTRAS PROPIAS IMÁGENES A UN REPOSITORIO (DOCKER HUB)
+
+**Paso 1: creando repositorio para almacenar la imagen en Docker Hub**
+
+En primer lugar, debéis crearos una cuenta en https://hub.docker.com e iniciar sesión. Una vez
+iniciada sesión, debéis acceder a “Repositories” y ahí a “Create repository”.
+
+Tras ello, podréis quedar un repositorio con vuestra cuenta y elegir si dicho repositorio es público
+(cualquiera puede acceder) o privado (solo puede acceder dueño o autorizados).
+
+**Paso 2: almacenando imagen local en repositorio Docker Hub**
+
+En primer lugar, deberemos iniciar sesión mediante consola al repositorio mediante el comando
+- docker login
+
+Una vez iniciada sesión, debemos hacer un “commit” local de la imagen, siguiendo la estructura
+vista en puntos anteriores. Un ejemplo podría ser:
+- docker commit -a "Sergi" -m "Ubuntu modificado" IDCONTENEDOR
+sergi/prueba
+
+Hecho este “commit” local, debemos subirlo usando “docker push”
+
+- docker push sergi/prueba
+
+### GENERAR AUTOMÁTICAMENTE NUESTRAS PROPIAS IMÁGENES MEDIANTE DOCKERFILE
+
+**Editor Visual Studio Code y plugins asociados a Docker**
+
+Los ficheros “Dockerfile” pueden crearse con cualquier editor de texto, pero desde aquí
+recomendamos el editor multiplataforma “Visual Studio Code” https://code.visualstudio.com/
+
+Al instalarlo, si detecta Docker instalado en el sistema, el propio editor nos sugerirá una serie de
+plugins. Merece la pena instalarlos. Si no, siempre podéis buscar en plugins manualmente. 
+
+**Creando nuestro primer Dockerfile**
+
+Empezaremos creando un sencillo “Dockerfile” donde crearemos una imagen de Ubuntu con el
+editor de texto “nano” instalado. Para ello indicaremos:
+-  De qué imagen base partiremos.
+-  Qué comandos lanzaremos sobre la imagen base, para crear la nueva imagen
+-   Qué comando se asociará por defecto al lanzar un contenedor con la nueva imagen
+
+Creamos el fichero “Dockerfile” (Visual Studio Code le pondrá un icono de la ballena) y añadimos:
+- FROM ubuntu:latest
+RUN apt update && apt install -y nano
+#Aquí un comentario
+CMD /bin/bash
+
+Si ahora usamos el comando “docker build” de la siguiente forma:
+- docker build -t ubuntunano ./
+
+Si queréis especificar un nombre de fichero distinto a buscar en el directorio, puede usarse la
+opción “-f”, como en este ejemplo:
+- docker build -t ubuntunano -f Dockerfile2 ./
+
+**Otros comandos importantes de Dockerfile**
+
+La opción EXPOSE nos permite indicar los puertos por defecto expuestos que tendrá un
+contenedor basado en esta imagen
+- EXPOSE 80 443 8080
+
+ADD es un comando para copiar un fichero de la máquina anfitriona al nuevo contenedor, por ejemplo
+- ADD ./mifichero.zip /var/www/html
+
+Descomprimirá el contenido de “mifichero.zip” en el directorio destino de la nueva imagen.
+
+COPY sirve para lo mismo pero excepto si queremos descomprimir un "zip"
+- COPY ./mifichero.zip /var/www/html
+
+**Comando ENTRYPOINT**
+
+Por defecto, los contenedores Docker están configurados para que ejecuten los comandos que se
+lancen mediante “/bin/sh -c”. Dicho de otra forma, los comandos que lanzábamos, eran
+parámetros para “/bin/sh -c”. Podemos cambiar qué comando se usa para esto con ENTRYPOINT.
+Por ejemplo:
+- ENTRYPOINT ["cat"] <br>
+CMD ["/etc/passwd"]
+
+**Comando USER**
+
+Por defecto, todos los comandos lanzados en la creación de la imagen se ejecutan con el usuario
+root (usuario con UID=0). Para poder cambiar esto, podemos usar el comando USER, indicando el
+nombre de usuario o UID con el que queremos que se ejecute el comando. Por ejemplo:
+- USER sergi <br>
+CMD id
+
+**Comando WORKDIR**
+
+Cada vez que expresamos el comando WORKDIR, estamos cambiando el directorio de la imagen
+donde ejecutamos los comandos. Si este directorio no existe, se crea. Por ejemplo:
+- WORKDIR /root <br>
+CMD mkdir tmp <br>
+WORKDIR /var/www/html <br>
+CMD mkdir tmp
+
+**Comando ENV**
+
+El comando ENV nos permite definir variables de entorno por defecto en la imagen.
+- ENV v1=”valor1” v2=”valor2”
+
+**Otros comandos útiles: ARG, VOLUME, LABEL, HEALTHCHECK**
+
+Aquí comentamos comandos útiles:
+- ARG: permite enviar parámetros al propio “Dockerfile” con la opción “--build-arg” del
+comando “docker build”.
+- VOLUME: permite establecer volúmenes por defecto en la imágen. Hablaremos de los
+volúmenes más adelante en el curso.
+- LABEL: permite establecer metadatos dentro de la imagen mediante etiquetas. Uno de los
+casos más típicos, sustituyendo al comando MAINTAINER, que esta “deprecated” es LABEL maintainer="sergi.profesor@gmail.com"
+- HEALTHCHECK: permite definir cómo se comprobará si ese contenedor está funcionando
+correctamente o no. Útil para sistemas orquestadores como “Docker swarn”, aunque otros
+como “Kubernetes” incorporan su propio sistema
+
+### TRUCOS PARA HACER NUESTRAS IMÁGENES MÁS LIGERAS
+
+Al crear imágenes, es habitual aumentar el tamaño de las imágenes base. Algunos consejos para
+dentro de lo posible, aumentar el tamaño lo menos posible:
+- Usar imágenes base ligeras, tipo “Alpine”
+- Utiliza comandos de limpieza tras instalaciones con “apt”, tales como “rm -rf /var/lib/apt/lists/*” tras crear una imagen para borrar las listas generadas al realizar “apt update”.
+
