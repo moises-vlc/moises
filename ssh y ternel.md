@@ -1,4 +1,4 @@
-## CREACIÓN DE SSH Y TELNET
+## CREACIÓN DE SSH
 
 ### PASOS
 
@@ -53,3 +53,27 @@ sudo apt install openssh-server -y
 ```bash
 ssh root@10.2.1.144
 ```
+
+
+## CREACIÓN DE TELNET
+
+**Instalamos telnet en el servidor** 
+
+```bash
+apt install telnetd-ssl
+apt install telnetd xinetd
+```
+
+**Instalamos telnet en el cliente**
+
+```bash
+apt install telnetd
+```
+**Comprobación**
+
+Pondremos telnet y nuestra ip del servidor
+
+<img width="325" height="77" alt="Screenshot_20251023_102905" src="https://github.com/user-attachments/assets/79fc9a12-fcac-4239-9a48-92d171948253" />
+
+
+
